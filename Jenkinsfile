@@ -107,6 +107,28 @@ pipeline {
 
         }
 
+        stage('Deploiement en qa -> Movie Service'){
+            environment
+            {
+            KUBECONFIG = credentials("config") // we retrieve  kubeconfig from secret file called config saved on jenkins
+            }
+                steps {
+                    script {
+                    sh '''
+                    rm -Rf .kube
+                    mkdir .kube
+                    ls
+                    cat $KUBECONFIG > .kube/config
+                    cp movie-chart/values.yaml values.yaml
+                    cat values.yaml
+                    sed -i "0,/tag.*/s//tag: ${DOCKER_TAG}/" values.yaml
+                    helm upgrade --install movie-chart-release ./movie-chart --values=values.yaml --set service.port=8004 --set db.name=movie_db_qa --namespace qa
+                    '''
+                    }
+                }
+
+        }
+
         stage('Deploiement en staging -> Movie Service'){
             environment
             {
@@ -122,7 +144,7 @@ pipeline {
                     cp movie-chart/values.yaml values.yaml
                     cat values.yaml
                     sed -i "0,/tag.*/s//tag: ${DOCKER_TAG}/" values.yaml
-                    helm upgrade --install movie-chart-release ./movie-chart --values=values.yaml --set service.port=8004 --set db.name=movie_db_staging --namespace staging
+                    helm upgrade --install movie-chart-release ./movie-chart --values=values.yaml --set service.port=8006 --set db.name=movie_db_staging --namespace staging
                     '''
                     }
                 }
@@ -150,7 +172,7 @@ pipeline {
                     cp movie-chart/values.yaml values.yaml
                     cat values.yaml
                     sed -i "0,/tag.*/s//tag: ${DOCKER_TAG}/" values.yaml
-                    helm upgrade --install movie-chart-release ./movie-chart --values=values.yaml --set service.port=8006 --set db.name=movie_db_prod --namespace prod
+                    helm upgrade --install movie-chart-release ./movie-chart --values=values.yaml --set service.port=8008 --set db.name=movie_db_prod --namespace prod
                     '''
                     }
                 }
